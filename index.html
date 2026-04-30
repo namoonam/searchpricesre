@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ราคาสินค้า | SRE Wire Shop</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --border: #2a2d3a;
+      --accent: #f0b429;
+      --accent2: #e55a2b;
+      --text: #e8eaf0;
+      --muted: #6b7080;
+      --success: #2dd4a0;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Sarabun', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    /* Background grid */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(240,180,41,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(240,180,41,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Header */
+    .shop-header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .shop-logo {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 4px;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .shop-name {
+      font-size: 13px;
+      color: var(--muted);
+      letter-spacing: 1px;
+    }
+
+    /* Card */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      animation: slideUp 0.5s ease both;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card-header {
+      background: linear-gradient(135deg, #1e2130 0%, #252836 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .barcode-icon {
+      width: 36px;
+      height: 36px;
+      background: rgba(240,180,41,0.12);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .barcode-icon svg {
+      width: 20px;
+      height: 20px;
+      fill: var(--accent);
+    }
+
+    .barcode-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .barcode-value {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--accent);
+      margin-top: 2px;
+    }
+
+    .card-body {
+      padding: 28px 24px;
+    }
+
+    /* Product info */
+    .product-name {
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1.4;
+      color: var(--text);
+      margin-bottom: 24px;
+    }
+
+    .price-section {
+      background: linear-gradient(135deg, rgba(240,180,41,0.08) 0%, rgba(229,90,43,0.05) 100%);
+      border: 1px solid rgba(240,180,41,0.2);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .price-label {
+      font-size: 13px;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .price-value {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 40px;
+      font-weight: 600;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    .price-unit {
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    /* Status states */
+    .state-box {
+      text-align: center;
+      padding: 40px 24px;
+    }
+
+    .state-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      display: block;
+    }
+
+    .state-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .state-desc {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .state-error .state-title { color: var(--accent2); }
+    .state-loading .state-title { color: var(--muted); }
+    .state-notfound .state-title { color: var(--muted); }
+
+    /* Loading spinner */
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 1px;
+    }
+
+    /* Cache note */
+    .update-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 16px;
+      padding: 6px 12px;
+      background: rgba(45,212,160,0.08);
+      border: 1px solid rgba(45,212,160,0.2);
+      border-radius: 20px;
+      font-size: 11px;
+      color: var(--success);
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      background: var(--success);
+      border-radius: 50%;
+      animation: pulse 2s ease infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="shop-header">
+    <div class="shop-logo">SRE Wire Shop</div>
+    <div class="shop-name">ตรวจสอบราคาสินค้า</div>
+  </div>
+
+  <div class="card" id="card">
+    <!-- Loading state -->
+    <div class="state-box state-loading" id="state-loading">
+      <div class="spinner"></div>
+      <div class="state-title">กำลังโหลดข้อมูล...</div>
+      <div class="state-desc">กรุณารอสักครู่</div>
+    </div>
+  </div>
+
+  <div class="footer">srewireshop.github.io</div>
+</div>
+
+<script>
+  const JSON_URL = 'https://raw.githubusercontent.com/namoonam/srewireshop.github.io/main/products_data.json';
+
+  function getBarcode() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('barcode') || params.get('id') || params.get('code');
+  }
+
+  function renderProduct(product) {
+    const card = document.getElementById('card');
+    card.innerHTML = `
+      <div class="card-header">
+        <div class="barcode-icon">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="4" width="2" height="16"/><rect x="5" y="4" width="1" height="16"/>
+            <rect x="7" y="4" width="2" height="16"/><rect x="11" y="4" width="1" height="16"/>
+            <rect x="13" y="4" width="2" height="16"/><rect x="17" y="4" width="1" height="16"/>
+            <rect x="19" y="4" width="2" height="16"/>
+          </svg>
+        </div>
+        <div>
+          <div class="barcode-label">Barcode</div>
+          <div class="barcode-value">${product.barcode}</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="product-name">${product.name}</div>
+        <div class="price-section">
+          <div class="price-label">ราคา</div>
+          <div class="price-value">${Number(product.p1).toLocaleString('th-TH')}</div>
+          <div class="price-unit">บาท / หน่วย</div>
+        </div>
+        <div style="text-align:center">
+          <div class="update-badge">
+            <div class="dot"></div>
+            อัปเดต ${product.lastUpdate || '-'}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderError(type) {
+    const card = document.getElementById('card');
+    if (type === 'no-barcode') {
+      card.innerHTML = `
+        <div class="state-box state-notfound">
+          <span class="state-icon">📷</span>
+          <div class="state-title">ไม่พบรหัสสินค้า</div>
+          <div class="state-desc">กรุณาสแกน QR Code<br>จากสินค้าที่ต้องการตรวจสอบราคา</div>
+        </div>`;
+    } else if (type === 'not-found') {
+      card.innerHTML = `
+        <div class="state-box state-notfound">
+          <span class="state-icon">🔍</span>
+          <div class="state-title">ไม่พบสินค้า</div>
+          <div class="state-desc">ไม่พบข้อมูลสินค้าในระบบ<br>กรุณาติดต่อเจ้าหน้าที่</div>
+        </div>`;
+    } else {
+      card.innerHTML = `
+        <div class="state-box state-error">
+          <span class="state-icon">⚠️</span>
+          <div class="state-title">เกิดข้อผิดพลาด</div>
+          <div class="state-desc">ไม่สามารถโหลดข้อมูลได้<br>กรุณาลองใหม่อีกครั้ง</div>
+        </div>`;
+    }
+  }
+
+  async function init() {
+    const barcode = getBarcode();
+
+    if (!barcode) {
+      renderError('no-barcode');
+      return;
+    }
+
+    try {
+      // Cache-bust เพื่อให้ได้ข้อมูลล่าสุด
+      const res = await fetch(`${JSON_URL}?t=${Date.now()}`);
+      if (!res.ok) throw new Error('fetch failed');
+
+      const products = await res.json();
+      const product = products.find(p =>
+        p.barcode === barcode || p.id === barcode
+      );
+
+      if (!product) {
+        renderError('not-found');
+        return;
+      }
+
+      renderProduct(product);
+
+    } catch (e) {
+      renderError('error');
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>
