@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin | SRE Wire Shop</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #0f1117; --surface: #1a1d27; --surface2: #20232f;
+      --border: #2a2d3a; --accent: #f0b429; --text: #e8eaf0;
+      --muted: #6b7080; --danger: #f87171;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Sarabun', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background-image: linear-gradient(rgba(240,180,41,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(240,180,41,0.025) 1px, transparent 1px);
+      background-size: 40px 40px; pointer-events: none;
+    }
+    /* LOGIN */
+    #login-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; position: relative; z-index: 1; }
+    .login-card { width: 100%; max-width: 380px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 40px 32px; }
+    .login-logo { text-align: center; margin-bottom: 32px; }
+    .login-logo-text { font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600; letter-spacing: 4px; color: var(--accent); text-transform: uppercase; }
+    .login-subtitle { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 12px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+    .field input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; color: var(--text); font-family: 'Sarabun', sans-serif; font-size: 15px; outline: none; transition: border-color 0.2s; }
+    .field input:focus { border-color: var(--accent); }
+    .login-btn { width: 100%; background: var(--accent); color: #0f1117; border: none; border-radius: 10px; padding: 14px; font-family: 'Sarabun', sans-serif; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 8px; }
+    .login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .login-error { color: var(--danger); font-size: 13px; text-align: center; margin-top: 12px; min-height: 20px; }
+    /* ADMIN */
+    #admin-screen { display: none; flex-direction: column; min-height: 100vh; position: relative; z-index: 1; }
+    .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+    .topbar-logo { font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600; color: var(--accent); letter-spacing: 2px; }
+    .topbar-right { display: flex; align-items: center; gap: 12px; }
+    #user-email { font-size: 12px; color: var(--muted); }
+    .logout-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 8px; padding: 6px 14px; font-family: 'Sarabun', sans-serif; font-size: 13px; cursor: pointer; }
+    .logout-btn:hover { border-color: var(--danger); color: var(--danger); }
+    .admin-body { flex: 1; padding: 24px; max-width: 800px; width: 100%; margin: 0 auto; }
+    .search-input { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; color: var(--text); font-family: 'Sarabun', sans-serif; font-size: 15px; outline: none; transition: border-color 0.2s; margin-bottom: 20px; display: block; }
+    .search-input:focus { border-color: var(--accent); }
+    .search-input::placeholder { color: var(--muted); }
+    #product-list { display: flex; flex-direction: column; gap: 8px; }
+    .product-row { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: all 0.15s; }
+    .product-row:hover { border-color: var(--accent); background: var(--surface2); }
+    .product-info { flex: 1; min-width: 0; }
+    .p-name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .p-barcode { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted); margin-top: 3px; }
+    .p-price { font-family: 'IBM Plex Mono', monospace; font-size: 16px; font-weight: 600; color: var(--accent); flex-shrink: 0; }
+    .p-icon { font-size: 20px; color: var(--muted); flex-shrink: 0; }
+    .loading-msg { text-align: center; color: var(--muted); padding: 40px; font-size: 15px; }
+    .loading-msg.error { color: var(--danger); }
+    /* MODAL */
+    #qr-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); align-items: center; justify-content: center; z-index: 100; padding: 24px; backdrop-filter: blur(4px); }
+    .modal-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; width: 100%; max-width: 360px; overflow: hidden; animation: popIn 0.2s ease both; }
+    @keyframes popIn { from { opacity:0; transform:scale(0.9); } to { opacity:1; transform:scale(1); } }
+    .modal-header { padding: 20px 24px 0; display: flex; justify-content: space-between; align-items: center; }
+    .modal-title { font-size: 14px; font-weight: 600; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+    .close-btn { background: none; border: none; color: var(--muted); font-size: 22px; cursor: pointer; }
+    .modal-body { padding: 20px 24px; text-align: center; }
+    #qr-canvas { display: flex; justify-content: center; margin-bottom: 16px; background: #fff; border-radius: 12px; padding: 16px; }
+    #qr-product-name { font-size: 16px; font-weight: 700; margin-bottom: 4px; line-height: 1.4; }
+    #qr-product-barcode { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+    #qr-product-price { font-family: 'IBM Plex Mono', monospace; font-size: 28px; font-weight: 600; color: var(--accent); margin-bottom: 4px; }
+    #qr-url { font-size: 10px; color: var(--muted); word-break: break-all; margin-bottom: 16px; }
+    .modal-actions { display: flex; gap: 10px; padding: 0 24px 24px; }
+    .btn-print { flex: 1; background: var(--accent); color: #0f1117; border: none; border-radius: 10px; padding: 13px; font-family: 'Sarabun', sans-serif; font-size: 15px; font-weight: 700; cursor: pointer; }
+    .btn-close2 { flex: 1; background: transparent; color: var(--muted); border: 1px solid var(--border); border-radius: 10px; padding: 13px; font-family: 'Sarabun', sans-serif; font-size: 15px; cursor: pointer; }
+    .btn-close2:hover { border-color: var(--text); color: var(--text); }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-text">SRE Wire Shop</div>
+      <div class="login-subtitle">Admin Panel</div>
+    </div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="email" placeholder="admin@example.com">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="password" placeholder="••••••••">
+    </div>
+    <button class="login-btn" id="login-btn">เข้าสู่ระบบ</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div id="admin-screen">
+  <div class="topbar">
+    <div class="topbar-logo">SRE · ADMIN</div>
+    <div class="topbar-right">
+      <span id="user-email"></span>
+      <button class="logout-btn" id="logout-btn">ออกจากระบบ</button>
+    </div>
+  </div>
+  <div class="admin-body">
+    <input type="text" id="search-input" class="search-input" placeholder="🔍 ค้นหาชื่อสินค้าหรือบาร์โค้ด...">
+    <div id="product-list"></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="qr-modal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-title">QR Code</div>
+      <button class="close-btn" id="close-btn">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="qr-canvas"></div>
+      <div id="qr-product-name"></div>
+      <div id="qr-product-barcode"></div>
+      <div id="qr-product-price"></div>
+      <div id="qr-url"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-print" id="print-btn">🖨️ ปริ้น QR</button>
+      <button class="btn-close2" id="close-btn2">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBLWpPcpu3hgQRCsPNbQnEIqOwbtnkjUQE",
+    authDomain: "claude-8151c.firebaseapp.com",
+    databaseURL: "https://claude-8151c-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "claude-8151c",
+    storageBucket: "claude-8151c.firebasestorage.app",
+    messagingSenderId: "613224139677",
+    appId: "1:613224139677:web:d8e4b6cd547209e0133d74"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  const JSON_URL = 'https://raw.githubusercontent.com/namoonam/searchpricesre/main/products_data.json';
+  const PUBLIC_URL = 'https://namoonam.github.io/searchpricesre/';
+
+  let allProducts = [];
+
+  // Auth state
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('admin-screen').style.display = 'flex';
+      document.getElementById('user-email').textContent = user.email;
+      loadProducts();
+    } else {
+      document.getElementById('login-screen').style.display = 'flex';
+      document.getElementById('admin-screen').style.display = 'none';
+    }
+  });
+
+  // Login
+  async function doLogin() {
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const btn = document.getElementById('login-btn');
+    const err = document.getElementById('login-error');
+    err.textContent = '';
+    btn.disabled = true;
+    btn.textContent = 'กำลังเข้าสู่ระบบ...';
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (e) {
+      err.textContent = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
+      btn.disabled = false;
+      btn.textContent = 'เข้าสู่ระบบ';
+    }
+  }
+
+  // Load products
+  async function loadProducts() {
+    const list = document.getElementById('product-list');
+    list.innerHTML = '<div class="loading-msg">กำลังโหลดสินค้า...</div>';
+    try {
+      const res = await fetch(`${JSON_URL}?t=${Date.now()}`);
+      allProducts = await res.json();
+      renderList(allProducts);
+    } catch (e) {
+      list.innerHTML = '<div class="loading-msg error">โหลดข้อมูลไม่สำเร็จ</div>';
+    }
+  }
+
+  function renderList(products) {
+    const list = document.getElementById('product-list');
+    if (products.length === 0) {
+      list.innerHTML = '<div class="loading-msg">ไม่พบสินค้า</div>';
+      return;
+    }
+    list.innerHTML = products.slice(0, 300).map(p => `
+      <div class="product-row" data-barcode="${p.barcode}" data-name="${encodeURIComponent(p.name)}" data-price="${p.p1}">
+        <div class="product-info">
+          <div class="p-name">${p.name}</div>
+          <div class="p-barcode">${p.barcode}</div>
+        </div>
+        <div class="p-price">฿${Number(p.p1).toLocaleString('th-TH')}</div>
+        <div class="p-icon">⊞</div>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('.product-row').forEach(row => {
+      row.addEventListener('click', () => showQR(
+        row.dataset.barcode,
+        decodeURIComponent(row.dataset.name),
+        row.dataset.price
+      ));
+    });
+  }
+
+  // Search
+  function doSearch() {
+    const q = document.getElementById('search-input').value.trim().toLowerCase();
+    if (!q) { renderList(allProducts); return; }
+    renderList(allProducts.filter(p =>
+      p.name.toLowerCase().includes(q) || p.barcode.includes(q)
+    ));
+  }
+
+  // Show QR
+  function showQR(barcode, name, price) {
+    const url = `${PUBLIC_URL}?barcode=${barcode}`;
+    document.getElementById('qr-product-name').textContent = name;
+    document.getElementById('qr-product-barcode').textContent = barcode;
+    document.getElementById('qr-product-price').textContent = `฿${Number(price).toLocaleString('th-TH')}`;
+    document.getElementById('qr-url').textContent = url;
+
+    const qrContainer = document.getElementById('qr-canvas');
+    qrContainer.innerHTML = '';
+    new QRCode(qrContainer, {
+      text: url, width: 200, height: 200,
+      colorDark: '#0f1117', colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.H
+    });
+    document.getElementById('qr-modal').style.display = 'flex';
+  }
+
+  function closeModal() {
+    document.getElementById('qr-modal').style.display = 'none';
+  }
+
+  // Print
+  function printQR() {
+    const name = document.getElementById('qr-product-name').textContent;
+    const barcode = document.getElementById('qr-product-barcode').textContent;
+    const price = document.getElementById('qr-product-price').textContent;
+    const qrEl = document.querySelector('#qr-canvas canvas') || document.querySelector('#qr-canvas img');
+    let imgSrc = '';
+    if (qrEl?.tagName === 'CANVAS') imgSrc = qrEl.toDataURL();
+    else if (qrEl?.tagName === 'IMG') imgSrc = qrEl.src;
+
+    const win = window.open('', '_blank');
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+      <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+      <style>
+        body{font-family:'Sarabun',sans-serif;margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#fff}
+        .card{text-align:center;padding:24px;border:2px solid #000;border-radius:12px;width:240px}
+        .shop{font-size:11px;letter-spacing:2px;color:#666;margin-bottom:8px;text-transform:uppercase}
+        img{width:180px;height:180px;display:block;margin:0 auto 12px}
+        .pname{font-size:14px;font-weight:700;margin-bottom:4px;line-height:1.4}
+        .pcode{font-size:11px;color:#666;font-family:monospace;margin-bottom:8px}
+        .pprice{font-size:28px;font-weight:700;color:#e55a2b}
+        .punit{font-size:11px;color:#666}
+        @media print{body{-webkit-print-color-adjust:exact}}
+      </style></head><body>
+      <div class="card">
+        <div class="shop">SRE Wire Shop</div>
+        <img src="${imgSrc}">
+        <div class="pname">${name}</div>
+        <div class="pcode">${barcode}</div>
+        <div class="pprice">${price}</div>
+        <div class="punit">บาท / หน่วย</div>
+      </div>
+      <script>window.onload=()=>window.print()<\/script>
+    </body></html>`);
+    win.document.close();
+  }
+
+  // Event listeners (ใช้แทน onclick ใน HTML เพราะ type="module")
+  document.getElementById('login-btn').addEventListener('click', doLogin);
+  document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+  document.getElementById('search-input').addEventListener('input', doSearch);
+  document.getElementById('email').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  document.getElementById('password').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  document.getElementById('close-btn').addEventListener('click', closeModal);
+  document.getElementById('close-btn2').addEventListener('click', closeModal);
+  document.getElementById('print-btn').addEventListener('click', printQR);
+  document.getElementById('qr-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('qr-modal')) closeModal();
+  });
+</script>
+</body>
+</html>
